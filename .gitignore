@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+# このプロジェクトでは .venv/ を使用していますが、一般的な名前も記載しています
+.venv/
+venv/
+
+# Environment variables
+# APIキーなどの秘密情報が含まれるため、絶対に管理対象に含めないでください
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Log files
+logs/
+
+# Data files
+# Contains sensitive internal documents, so it should not be managed by Git.
+data/
+
+# Streamlit specific files
+# secrets.tomlなどの秘密情報を含む可能性があるため、管理対象外とします
+.streamlit/
+
+# ChromaDB persistent storage
+# This is a generated artifact and can be large.
+.chroma/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
