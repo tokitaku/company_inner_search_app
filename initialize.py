@@ -108,7 +108,7 @@ def initialize_retriever():
     # すでにRetrieverが作成済みの場合、後続の処理を中断
     if "retriever" in st.session_state:
         return
-
+    
     # RAGの参照先となるデータソースの読み込み
     docs_all = load_data_sources()
 
@@ -117,10 +117,10 @@ def initialize_retriever():
         doc.page_content = adjust_string(doc.page_content)
         for key in doc.metadata:
             doc.metadata[key] = adjust_string(doc.metadata[key])
-
+    
     # 埋め込みモデルの用意
     embeddings = OpenAIEmbeddings()
-
+    
     # チャンク分割用のオブジェクトを作成
     text_splitter = CharacterTextSplitter(
         chunk_size=500,
@@ -135,7 +135,7 @@ def initialize_retriever():
     db = Chroma.from_documents(splitted_docs, embedding=embeddings)
 
     # ベクターストアを検索するRetrieverの作成
-    st.session_state.retriever = db.as_retriever(search_kwargs={"k": 5})
+    st.session_state.retriever = db.as_retriever(search_kwargs={"k": 3})
 
 
 def initialize_session_state():
