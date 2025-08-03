@@ -123,7 +123,9 @@ def initialize_retriever():
 
     # チャンク分割用のオブジェクトを作成
     text_splitter = CharacterTextSplitter(
-        chunk_size=ct.CHUNK_SIZE, chunk_overlap=ct.CHUNK_OVERLAP, separator="\n"
+        chunk_size=ct.CHUNK_SIZE,
+        chunk_overlap=ct.CHUNK_OVERLAP,
+        separator="\n",
     )
 
     # チャンク分割を実施
