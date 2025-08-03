@@ -109,6 +109,7 @@ def initialize_retriever():
     if "retriever" in st.session_state:
         return
 
+
     # RAGの参照先となるデータソースの読み込み
     docs_all = load_data_sources()
 
@@ -118,8 +119,10 @@ def initialize_retriever():
         for key in doc.metadata:
             doc.metadata[key] = adjust_string(doc.metadata[key])
 
+
     # 埋め込みモデルの用意
     embeddings = OpenAIEmbeddings()
+
 
     # チャンク分割用のオブジェクトを作成
     text_splitter = CharacterTextSplitter(
@@ -244,3 +247,4 @@ def adjust_string(s):
     
     # OSがWindows以外の場合はそのまま返す
     return s
+
