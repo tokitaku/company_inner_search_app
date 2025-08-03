@@ -109,6 +109,7 @@ def initialize_retriever():
     if "retriever" in st.session_state:
         return
 
+
     # RAGの参照先となるデータソースの読み込み
     docs_all = load_data_sources()
 
@@ -118,14 +119,16 @@ def initialize_retriever():
         for key in doc.metadata:
             doc.metadata[key] = adjust_string(doc.metadata[key])
 
+
     # 埋め込みモデルの用意
     embeddings = OpenAIEmbeddings()
 
+
     # チャンク分割用のオブジェクトを作成
     text_splitter = CharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=50,
-        separator="\n"
+        chunk_size=ct.CHUNK_SIZE,
+        chunk_overlap=ct.CHUNK_OVERLAP,
+        separator="\n",
     )
 
     # チャンク分割を実施
@@ -135,7 +138,9 @@ def initialize_retriever():
     db = Chroma.from_documents(splitted_docs, embedding=embeddings)
 
     # ベクターストアを検索するRetrieverの作成
-    st.session_state.retriever = db.as_retriever(search_kwargs={"k": 5})
+    st.session_state.retriever = db.as_retriever(
+        search_kwargs={"k": ct.RETRIEVER_SEARCH_K}
+    )
 
 
 def initialize_session_state():
@@ -242,3 +247,4 @@ def adjust_string(s):
     
     # OSがWindows以外の場合はそのまま返す
     return s
+
