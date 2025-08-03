@@ -8,8 +8,9 @@
 import os
 from dotenv import load_dotenv
 import streamlit as st
+import pandas as pd
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.schema import HumanMessage
+from langchain.schema import HumanMessage, Document
 from langchain_openai import ChatOpenAI
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -26,6 +27,49 @@ load_dotenv()
 ############################################################
 # 関数定義
 ############################################################
+
+def load_csv_as_department_chunks(path):
+    """
+    CSVファイルを部署別チャンクとして読み込む
+    
+    Args:
+        path: CSVファイルのパス
+    
+    Returns:
+        部署別に分割されたDocumentオブジェクトのリスト
+    """
+    # CSVファイルを読み込み
+    df = pd.read_csv(path, encoding='utf-8')
+    documents = []
+
+    for dept in df['部署'].unique():
+        dept_df = df[df['部署'] == dept]
+
+        # 部署別ドキュメント作成
+        content = ""
+
+        for _, row in dept_df.iterrows():
+            content += f"【{row['氏名（フルネーム）']}】\n"
+
+            # 全てのカラムを動的に出力（氏名と部署は既に表示済みなので除外）
+            exclude_columns = ["氏名（フルネーム）", "部署"]
+            for column in df.columns:
+                if column not in exclude_columns:
+                    content += f"- {column}: {row[column]}\n"
+
+            content += "\n"
+
+        documents.append(Document(
+            page_content=content,
+            metadata={
+                "source": path,
+                "department": dept,
+                "employee_count": len(dept_df)
+            }
+        ))
+
+    return documents
+
 
 def get_source_icon(source):
     """
@@ -70,7 +114,7 @@ def get_llm_response(chat_message):
         LLMからの回答
     """
     # LLMのオブジェクトを用意
-    llm = ChatOpenAI(model_name=ct.MODEL, temperature=ct.TEMPERATURE)
+    llm = ChatOpenAI(model=ct.MODEL, temperature=ct.TEMPERATURE)
 
     # 会話履歴なしでもLLMに理解してもらえる、独立した入力テキストを取得するためのプロンプトテンプレートを作成
     question_generator_template = ct.SYSTEM_PROMPT_CREATE_INDEPENDENT_TEXT

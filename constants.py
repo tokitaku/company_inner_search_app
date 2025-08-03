@@ -6,7 +6,6 @@
 # ライブラリの読み込み
 ############################################################
 from langchain_community.document_loaders import PyMuPDFLoader, Docx2txtLoader, TextLoader
-from langchain_community.document_loaders.csv_loader import CSVLoader
 
 
 ############################################################
@@ -47,10 +46,15 @@ TEMPERATURE = 0.5
 # RAG参照用のデータソース系
 # ==========================================
 RAG_TOP_FOLDER_PATH = "./data"
+def _get_csv_loader():
+    """CSV用のローダー関数を遅延読み込みで取得"""
+    import utils
+    return utils.load_csv_as_department_chunks
+
 SUPPORTED_EXTENSIONS = {
     ".pdf": PyMuPDFLoader,
     ".docx": Docx2txtLoader,
-    ".csv": lambda path: CSVLoader(path, encoding="utf-8"),
+    ".csv": _get_csv_loader,  # 関数実行を遅延
     ".txt": lambda path: TextLoader(path, encoding="utf-8")
 }
 WEB_URL_LOAD_TARGETS = [
@@ -63,7 +67,7 @@ WEB_URL_LOAD_TARGETS = [
 # ==========================================
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
-RETRIEVER_SEARCH_K = 5
+RETRIEVER_SEARCH_K = 8
 
 
 # ==========================================
