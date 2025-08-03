@@ -62,7 +62,7 @@ WEB_URL_LOAD_TARGETS = [
 # ==========================================
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
-RETRIEVER_SEARCH_K = 3
+RETRIEVER_SEARCH_K = 5
 
 
 # ==========================================
