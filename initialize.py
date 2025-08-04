@@ -13,12 +13,12 @@ import sys
 import unicodedata
 from dotenv import load_dotenv
 import streamlit as st
-from docx import Document
 from langchain_community.document_loaders import WebBaseLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 import constants as ct
+import utils
 
 
 ############################################################
@@ -102,13 +102,9 @@ def initialize_retriever():
     """
     画面読み込み時にRAGのRetriever（ベクターストアから検索するオブジェクト）を作成
     """
-    # ロガーを読み込むことで、後続の処理中に発生したエラーなどがログファイルに記録される
-    logger = logging.getLogger(ct.LOGGER_NAME)
-
     # すでにRetrieverが作成済みの場合、後続の処理を中断
     if "retriever" in st.session_state:
         return
-
 
     # RAGの参照先となるデータソースの読み込み
     docs_all = load_data_sources()
@@ -119,10 +115,8 @@ def initialize_retriever():
         for key in doc.metadata:
             doc.metadata[key] = adjust_string(doc.metadata[key])
 
-
     # 埋め込みモデルの用意
     embeddings = OpenAIEmbeddings()
-
 
     # チャンク分割用のオブジェクトを作成
     text_splitter = CharacterTextSplitter(
@@ -131,8 +125,15 @@ def initialize_retriever():
         separator="\n",
     )
 
-    # チャンク分割を実施
-    splitted_docs = text_splitter.split_documents(docs_all)
+    # ドキュメントの種類に応じた処理
+    splitted_docs = []
+    for doc in docs_all:
+        if doc.metadata.get("source", "").endswith("社員名簿.csv"):
+            # 社員名簿CSVは既に部署別分割済みなのでそのまま追加
+            splitted_docs.append(doc)
+        else:
+            # その他ファイルはチャンク分割
+            splitted_docs.extend(text_splitter.split_documents([doc]))
 
     # ベクターストアの作成
     db = Chroma.from_documents(splitted_docs, embedding=embeddings)
@@ -214,14 +215,19 @@ def file_load(path, docs_all):
     """
     # ファイルの拡張子を取得
     file_extension = os.path.splitext(path)[1]
-    # ファイル名（拡張子を含む）を取得
-    file_name = os.path.basename(path)
 
     # 想定していたファイル形式の場合のみ読み込む
     if file_extension in ct.SUPPORTED_EXTENSIONS:
-        # ファイルの拡張子に合ったdata loaderを使ってデータ読み込み
-        loader = ct.SUPPORTED_EXTENSIONS[file_extension](path)
-        docs = loader.load()
+        loader_func = ct.SUPPORTED_EXTENSIONS[file_extension]
+
+        # CSVファイルの場合、utils.pyの関数を使用
+        if file_extension == ".csv":
+            docs = utils.csv_loader_selector(path)
+        else:
+            # その他のファイル形式を統一的に処理
+            loader = loader_func(path)
+            docs = loader.load()
+
         docs_all.extend(docs)
 
 
@@ -247,4 +253,3 @@ def adjust_string(s):
     
     # OSがWindows以外の場合はそのまま返す
     return s
-

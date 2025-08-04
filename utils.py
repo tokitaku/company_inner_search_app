@@ -8,12 +8,14 @@
 import os
 from dotenv import load_dotenv
 import streamlit as st
+import pandas as pd
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.schema import HumanMessage
+from langchain.schema import HumanMessage, Document
 from langchain_openai import ChatOpenAI
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 import constants as ct
+from langchain_community.document_loaders.csv_loader import CSVLoader
 
 
 ############################################################
@@ -26,6 +28,84 @@ load_dotenv()
 ############################################################
 # 関数定義
 ############################################################
+
+
+def csv_loader_selector(path):
+    """
+    CSVファイルのパスに応じて適切なローダーを選択
+
+    Args:
+        path: CSVファイルのパス
+
+    Returns:
+        社員名簿CSVの場合: 単一統合ドキュメント
+        その他CSVの場合: 通常のCSVLoaderの結果
+    """
+    if path.endswith("社員名簿.csv"):
+        return load_employee_csv_as_single_document(path)
+    else:
+        loader = CSVLoader(path, encoding="utf-8")
+        return loader.load()
+
+
+def load_employee_csv_as_single_document(path):
+    """
+    社員名簿CSVファイルを1つの統合ドキュメントとして読み込む
+
+    Args:
+        path: 社員名簿CSVファイルのパス
+
+    Returns:
+        全社員情報を含む単一のDocumentオブジェクトのリスト
+    """
+    # CSVファイルを読み込み
+    df = pd.read_csv(path, encoding='utf-8')
+
+    # 必要なカラムの検証
+    required_columns = ["部署", "氏名（フルネーム）"]
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"必要なカラムが不足しています: {missing_columns}")
+
+    # 全体の統合ドキュメントを作成
+    content = "# 社員名簿\n\n"
+    content += f"全社員数: {len(df)}名\n\n"
+
+    # 部署ごとに情報を整理
+    for dept in sorted(df["部署"].unique()):
+        dept_df = df[df['部署'] == dept]
+
+        # 部署セクションの開始
+        content += f"## {dept}\n"
+        content += f"{dept}に所属している従業員は{len(dept_df)}人います。\n\n"
+
+        # 各従業員の情報を追加
+        for idx, (_, row) in enumerate(dept_df.iterrows(), 1):
+            content += f"### {idx}. {row['氏名（フルネーム）']}\n"
+
+            # 全てのカラムを動的に出力（氏名と部署は既に表示済みなので除外）
+            exclude_columns = ["氏名（フルネーム）", "部署"]
+            for column in df.columns:
+                if column not in exclude_columns and pd.notna(row[column]):
+                    content += f"- {column}: {row[column]}\n"
+
+            content += "\n"
+
+        content += "---\n\n"  # 部署間の区切り
+
+    # 単一のドキュメントとして返す
+    return [
+        Document(
+            page_content=content,
+            metadata={
+                "source": path,
+                "type": "employee_roster",
+                "total_employees": len(df),
+                "departments": ", ".join(sorted(df["部署"].unique())),
+            },
+        )
+    ]
+
 
 def get_source_icon(source):
     """
@@ -70,7 +150,7 @@ def get_llm_response(chat_message):
         LLMからの回答
     """
     # LLMのオブジェクトを用意
-    llm = ChatOpenAI(model_name=ct.MODEL, temperature=ct.TEMPERATURE)
+    llm = ChatOpenAI(model=ct.MODEL, temperature=ct.TEMPERATURE)
 
     # 会話履歴なしでもLLMに理解してもらえる、独立した入力テキストを取得するためのプロンプトテンプレートを作成
     question_generator_template = ct.SYSTEM_PROMPT_CREATE_INDEPENDENT_TEXT
