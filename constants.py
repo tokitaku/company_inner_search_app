@@ -46,16 +46,12 @@ TEMPERATURE = 0.5
 # RAG参照用のデータソース系
 # ==========================================
 RAG_TOP_FOLDER_PATH = "./data"
-def _get_csv_loader():
-    """CSV用のローダー関数を遅延読み込みで取得"""
-    import utils
-    return utils.load_csv_as_department_chunks
 
 SUPPORTED_EXTENSIONS = {
     ".pdf": PyMuPDFLoader,
     ".docx": Docx2txtLoader,
-    ".csv": _get_csv_loader,  # 関数実行を遅延
-    ".txt": lambda path: TextLoader(path, encoding="utf-8")
+    ".csv": "csv_loader_selector",  # 文字列で関数名を指定（file_loadで処理）
+    ".txt": lambda path: TextLoader(path, encoding="utf-8"),
 }
 WEB_URL_LOAD_TARGETS = [
     "https://generative-ai.web-camp.io/"
@@ -67,7 +63,7 @@ WEB_URL_LOAD_TARGETS = [
 # ==========================================
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
-RETRIEVER_SEARCH_K = 8
+RETRIEVER_SEARCH_K = 5
 
 
 # ==========================================
